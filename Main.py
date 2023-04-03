@@ -54,6 +54,7 @@ def Hover():
         MotorControll.MotorSpeed(MotorControll.motors[2],-1)
         MotorControll.MotorSpeed(MotorControll.motors[3],1)
 
+#changes numbers to better reflect the changes in motor speed
 def xStandartizeNumber(numb):
     #Neutral 510 Min 0 Max 1023
     #number diff 513
@@ -61,7 +62,8 @@ def xStandartizeNumber(numb):
     adjustedNumb=round((numb-510)/300)
     print("adjustedNumb: "+str(adjustedNumb))
     return adjustedNumb
-    
+
+#changes numbers to better reflect the changes in motor speed
 def yStandartizeNumber(numb):
     #Neutral 522 Min 0 Max 1023
     #number diff 501
@@ -69,6 +71,7 @@ def yStandartizeNumber(numb):
     print(adjustedNumb)
     return adjustedNumb    
 
+#Moves the drone left or right based on input
 def MoveHorizontally(numb):
     numb=yStandartizeNumber(numb)
     for speed in range(0,1,1):
@@ -77,10 +80,11 @@ def MoveHorizontally(numb):
         MotorControll.MotorSpeed(MotorControll.motors[2],numb)
         MotorControll.MotorSpeed(MotorControll.motors[3],-numb)
 
+#moves the drone forward or backwards based on input
 def MoveVertically(numb):
     numb=xStandartizeNumber(numb)
-    print("numb: "+str(numb))
-    print("reverseNumb: "+str(numb*-1))
+#    print("numb: "+str(numb))
+#    print("reverseNumb: "+str(numb*-1))
     for speed in range(0,1,1):
         MotorControll.MotorSpeed(MotorControll.motors[0],-numb)
         MotorControll.MotorSpeed(MotorControll.motors[1],-numb)
@@ -99,12 +103,13 @@ def MoveDown():
         for motor in MotorControll.motors:
             MotorControll.MotorSpeed(motor,-1)
 
+#turns off the motors
 def TurnOff():
     for speed in range(0,10,1):
         for motor in MotorControll.motors:
             MotorControll.MotorSpeed(motor,-1)
     Gx,Gy,Gz,Ax,Ay,Az=AccGyro.AverageInfo()
-    
+    # the goal is to lower the drone to the ground without shuting the motors in the air, not reliable
     while(Az<0):
         for speed in range(0,10,1):
             for motor in MotorControll.motors:
@@ -113,43 +118,56 @@ def TurnOff():
         time.sleep(0.1)
     MotorControll.Stop()
 
+#Main code which sets the timing and uses all mothods previuosly defined
 def Controll():
+    #Read the signal comming in
     message=RadioReceiverV2.RadioSignal()
+
     noneCount=0
     while(True):
         #print(message)
+    #This code is for turning off the motors if no signal is received 100 times, since the receiver runs faster than the transmitter it usually gets like 4 NaN signals every normal signal
         if (message==None):
             noneCount=noneCount+1
             if (noneCount>100):
                 TurnOff()
                 return "OFF"
+    #Else keeps working as normal
         else:
-            
-            oldMessage=message % 10000
-            messgeModified=message % 10000
+            #reset for the noneCounter
             noneCount=0
-            if (((oldMessage>500 and oldMessage<520) or (oldMessage>512 and oldMessage<530)) and ((messgeModified>500 and messgeModified<520) or (messgeModified>512 and messgeModified<530))):
+            #The 10000 Digit is a code which will tell the drone what to do
+            #removing it gives controll specifications if they are in the middle range the drone knows the joistic is idle
+            #and will perform the hover code
+            messgeModified=message % 10000
+            if ((messgeModified>500 and messgeModified<520) or (messgeModified>512 and messgeModified<530)):
                 Hover()
             else:
                 print("message: "+str(message))
-                modifiedMessage=message % 10000
+                #Move Vertically
                 if round(round(message / 10000)) == 1:
                     print("X: "+ str(message % 10000))
-                    MoveVertically(modifiedMessage)
+                    MoveVertically(messgeModified)
+                #Move Horizontally
                 if round(round(message / 10000)) == 2:
                     print("Y: "+ str(message % 10000))
-                    MoveHorizontally(modifiedMessage)
+                    MoveHorizontally(messgeModified)
+                #Move Up
                 if round(round(message / 10000)) == 3:
                     print("1: "+ str(message % 10000))
                     MoveUp()
+                #Move Down
                 if round(round(message / 10000)) == 4:
                     print("2: "+ str(message % 10000))
                     MoveDown()
+                #Shut Down
                 if round(round(message / 10000)) == 5:
                     print("3: "+ str(message % 10000))
                     TurnOff()
                     return "OFF"
-        message=RadioReceiverV2.RadioSignal()    
+        #Read the new message
+        message=RadioReceiverV2.RadioSignal()
+        #Small Delay but it keeps the code running smoothly    
         time.sleep(0.005)
 
 

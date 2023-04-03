@@ -13,12 +13,12 @@
     -Ax moves backward
     Az moves up or down
 '''
-import smbus         #import SMBus module of I2C
-from time import sleep          #import
-import math
+import smbus            #import SMBus module of I2C
+from time import sleep   
+import math             #import math for some floor rounding
 
 bus = smbus.SMBus(1)    # or bus = smbus.SMBus(0) for older version boards
-Device_Address = 0x68   # MPU6050 device address
+Device_Address = 0x68   # MPU6050 device address (Accelerometer/Gyroscope)
 
 #some MPU6050 Registers and their Address
 PWR_MGMT_1   = 0x6B
@@ -70,6 +70,7 @@ def GyroscopeInfo():
     gyro_y = read_raw_data(GYRO_YOUT_H)
     gyro_z = read_raw_data(GYRO_ZOUT_H)
 
+    #adjust data so it would be more accurate and usefull
     Gx = round(gyro_x/131.0,2)
     Gy = round(gyro_y/131.0,2)
     Gz = round(gyro_z/131.0,2)
@@ -86,6 +87,7 @@ def AccelerometerInfo():
     acc_y = read_raw_data(ACCEL_YOUT_H)
     acc_z = read_raw_data(ACCEL_ZOUT_H)
 
+    #adjust data so it would be more accurate and usefull
     Ax = round(acc_x/16384.0,3)
     Ay = round(acc_y/16384.0,3)
     Az = round(acc_z/16384.0,3)
@@ -96,6 +98,7 @@ def AccelerometerInfo():
 
     return Ax,Ay,Az
 
+#Average out the info in five reads, helps eliminate a lot of noise
 def AverageInfo():
     
     TGx=0
@@ -120,7 +123,8 @@ def AverageInfo():
     TAy=round(math.floor(TAy/5*1000)/1000,2)
     TAz=round(math.floor(TAz/5*1000)/1000,2)
     return TGx,TGy,TGz,TAx,TAy,TAz
-      
+
+#used for testing, prints only if there are changes in the reading      
 def DifferentAllResult():
     Gx,Gy,Gz,Ax,Ay,Az=AverageInfo()
     if (Gx != 0 or Gy != 0 or Gz != 0 or Ax != 0 or Ay != 0 or Az != 0):
